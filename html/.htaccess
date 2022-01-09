@@ -1,0 +1,8 @@
+RewriteEngine On
+RewriteBase /
+
+RewriteCond %{REQUSET_FILENAME} !-f
+RewriteCond %{REQUSET_FILENAME} !-d
+RewriteRule ^(.*)$ index.php?path_controller=$1 [QSA]
+
+Options All -Indexes
