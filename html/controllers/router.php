@@ -1,16 +1,15 @@
 <?php
   /*
-    Контроллер Router.php предназначен для обработки HTTP-путей.
-    Все пути попадают в $_GET['path_controller'].
+    Контроллер Router.php.
+    Предназначен для обработки HTTP-путей. Все пути попадают в $_GET['path_controller'].
   */
 
-  namespace nttek\controllers\router;
-
   class Pathfinder {
-    private $directory = __DIR__ . '/../routers';
-    private $finder = !empty($_GET['path_controller']) ? $_GET['path_controller'] : '';
+    private $directory = __DIR__ . '/../routes';
+    private $finder = '';
 
     public function __construct() {
+      $this -> finder = !empty($_GET['path_controller']) ? $_GET['path_controller'] : '';
       if (!empty($this -> finder)) {
         if (file_exists($this -> get_path($this -> finder))) {
           require $this -> get_path($this -> finder);
