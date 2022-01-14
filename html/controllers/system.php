@@ -4,6 +4,13 @@
     Используется для вызова функций системы.
   */
 
+  set_error_handler(function($errno, $errstr, $errfile, $errline) {
+    if (0 === error_reporting()) {
+      return false;
+    }
+    throw new ErrorException($errstr, 0, $errno, $errfile, $errline);
+  }, E_ERROR|E_WARNING);
+
   class system {
     static function create_UUID() {
       return sprintf(

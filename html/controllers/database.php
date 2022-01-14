@@ -27,10 +27,10 @@
           $password,
           $database
         );
-        return $sql -> errno;
         $sql -> close();
-      } catch (Exception $e) {
-        return $e;
+        return $sql;
+      } catch (ErrorException $e) {
+        return 'Ошибка при подключении к базе данных. Ошибка в предоставленных данных.';
       }
     }
 
