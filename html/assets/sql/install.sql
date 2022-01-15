@@ -2,7 +2,7 @@ CREATE TABLE `authorization`(
     `id` INT NOT NULL PRIMARY KEY AUTO_INCREMENT,
     `uuid` VARCHAR(255) NOT NULL,
     `email` VARCHAR(255) NOT NULL,
-    `google_ldap_email` INT NULL,
+    `google_ldap_email` VARCHAR(255) NULL,
     `system_role` INT NOT NULL,
     `password_hash` TEXT NOT NULL,
     `id_data` INT NOT NULL
