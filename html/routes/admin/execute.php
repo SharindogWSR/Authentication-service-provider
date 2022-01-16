@@ -7,7 +7,7 @@
       $database = new connect();
       system::create_message('Система уже настроена!', [], 403);
       $database -> close();
-    } catch (Exception $e) {
+    } catch (ErrorException $e) {
       $check_payload = system::check_required_payload([
         'database_login',
         'database_password',
@@ -40,7 +40,11 @@
           while (mysqli_next_result($sql));
           $sql -> query("INSERT INTO `users_data` (`lastname`, `firstname`, `patronymic`, `group`, `payload`) VALUES ('{$_POST['admin_lastname']}', '{$_POST['admin_firstname']}', '{$_POST['admin_patronymic']}', 'system', NULL);");
           $sql -> query("INSERT INTO `authorization` (`uuid`, `email`, `google_ldap_email`, `system_role`, `password_hash`, `id_data`) VALUES ('{$uuid}', '{$_POST['admin_email']}', NULL, 0, '{$_POST['admin_password']}', {$sql -> insert_id});");
-          $privateRaw = openssl_pkey_new();
+          $privateRaw = openssl_pkey_new([
+            'digest_alg' => 'sha512',
+            'private_key_bits' => 4096,
+            'private_key_type' => OPENSSL_KEYTYPE_RSA
+          ]);
           $public = openssl_pkey_get_details($privateRaw)['key'];
           $private = '';
           openssl_pkey_export($privateRaw, $private);

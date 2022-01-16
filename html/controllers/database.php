@@ -15,7 +15,7 @@
           $dbase_connect['database']
         );
         unset($dbase_connect);
-      } else throw new Exception('Подключение к базе данных не настроено!');
+      } else throw new ErrorException('Подключение к базе данных не настроено!');
     }
 
     static function check_connect(string $hostname = '', string $username = '', string $password = '', string $database = '') {
@@ -36,7 +36,11 @@
 
     public function check_uuid(string $uuid = '') {
       if (!empty($uuid)) {
-
+        
       } else return false;
+    }
+
+    private function prepared_select(string $table = '') {
+
     }
   }
