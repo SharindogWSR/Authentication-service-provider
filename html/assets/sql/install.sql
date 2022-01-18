@@ -32,12 +32,36 @@ ALTER TABLE
 CREATE TABLE `log_of_authorization`(
     `id_user` INT NOT NULL,
     `user_agent` TEXT NOT NULL,
-    `ip_address` INT NOT NULL,
-    `timestamp` TIMESTAMP NOT NULL
+    `ip_address` TEXT NOT NULL,
+    `timestamp` TIMESTAMP NOT NULL,
+    `id_service` INT NOT NULL
+);
+CREATE TABLE `services`(
+    `id` INT NOT NULL PRIMARY KEY AUTO_INCREMENT,
+    `token` VARCHAR(255) NOT NULL,
+    `name` VARCHAR(255) NOT NULL,
+    `production` TINYINT(1) NOT NULL,
+    `payload` TINYINT(1) NOT NULL,
+    `groups` JSON NOT NULL
+);
+ALTER TABLE
+    `services` ADD UNIQUE `services_token_unique`(`token`);
+ALTER TABLE
+    `services` ADD UNIQUE `services_name_unique`(`name`);
+CREATE TABLE `services_authorization`(
+    `id_service` INT NOT NULL,
+    `id_user` INT NOT NULL,
+    `group` INT NOT NULL
 );
 ALTER TABLE
     `refresh_tokens` ADD CONSTRAINT `refresh_tokens_id_user_foreign` FOREIGN KEY(`id_user`) REFERENCES `authorization`(`id`);
 ALTER TABLE
     `log_of_authorization` ADD CONSTRAINT `log_of_authorization_id_user_foreign` FOREIGN KEY(`id_user`) REFERENCES `authorization`(`id`);
 ALTER TABLE
+    `services_authorization` ADD CONSTRAINT `services_authorization_id_user_foreign` FOREIGN KEY(`id_user`) REFERENCES `authorization`(`id`);
+ALTER TABLE
     `authorization` ADD CONSTRAINT `authorization_id_data_foreign` FOREIGN KEY(`id_data`) REFERENCES `users_data`(`id`);
+ALTER TABLE
+    `log_of_authorization` ADD CONSTRAINT `log_of_authorization_id_service_foreign` FOREIGN KEY(`id_service`) REFERENCES `services`(`id`);
+ALTER TABLE
+    `services_authorization` ADD CONSTRAINT `services_authorization_id_service_foreign` FOREIGN KEY(`id_service`) REFERENCES `services`(`id`);

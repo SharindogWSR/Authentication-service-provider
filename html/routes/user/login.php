@@ -17,5 +17,14 @@
   }
 
   if ($system_enabled) {
-    
+    if (system::check_method()) {
+
+    } else
+      system::create_message(
+        'Неподдерживаемый метод! Поддерживаемые методы: POST.',
+        [],
+        405
+      );
   }
+
+  $database -> close();

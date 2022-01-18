@@ -15,7 +15,6 @@
 
     public function __construct() {
       require __DIR__ . '/../vendor/autoload.php';
-      // use Firebase\JWT\JWT;
       require __DIR__ . '/../assets/php/keys.php';
       $this -> keys['public'] = $keys['public'];
       $this -> keys['private'] = $keys['private'];
