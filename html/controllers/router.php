@@ -25,6 +25,7 @@
     }
 
     private function show_code(int $code = 404) {
+      $this -> set_content_type();
       http_response_code($code);
       print(json_encode([
         'answer' => 'Смотри в HTTP Response Code.',
