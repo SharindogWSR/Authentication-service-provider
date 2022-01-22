@@ -12,13 +12,12 @@
       $this -> finder = !empty($_GET['path_controller']) ? $_GET['path_controller'] : '';
       if (!empty($this -> finder)) {
         if (file_exists($this -> get_path($this -> finder))) {
+          if (stripos($this -> finder, 'frontend') === false)
+            $this -> set_content_type();
+          else $this -> set_content_type('text/html');
           require $this -> get_path($this -> finder);
-        } else {
-          $this -> show_code();
-        }
-      } else {
-        require $this -> get_path('index');
-      }
+        } else $this -> show_code();
+      } else require $this -> get_path('index');
     }
 
     private function get_path(string $path) {
@@ -31,5 +30,9 @@
         'answer' => 'Смотри в HTTP Response Code.',
         'code' => $code,
       ]));
+    }
+
+    private function set_content_type(string $type = 'application/json') {
+      header("Content-Type: {$type}");
     }
   }

@@ -3,7 +3,6 @@ CREATE TABLE `authorization`(
     `uuid` VARCHAR(255) NOT NULL,
     `email` VARCHAR(255) NOT NULL,
     `google_ldap_email` VARCHAR(255) NULL,
-    `system_role` INT NOT NULL,
     `password_hash` TEXT NOT NULL,
     `id_data` INT NOT NULL
 );
@@ -34,7 +33,7 @@ CREATE TABLE `log_of_authorization`(
     `user_agent` TEXT NOT NULL,
     `ip_address` TEXT NOT NULL,
     `timestamp` TIMESTAMP NOT NULL,
-    `id_service` INT NOT NULL
+    `id_service` INT NULL
 );
 CREATE TABLE `services`(
     `id` INT NOT NULL PRIMARY KEY AUTO_INCREMENT,
@@ -42,7 +41,8 @@ CREATE TABLE `services`(
     `name` VARCHAR(255) NOT NULL,
     `production` TINYINT(1) NOT NULL,
     `payload` TINYINT(1) NOT NULL,
-    `groups` JSON NOT NULL
+    `groups` JSON NOT NULL,
+    `can_edit_user` TINYINT(1) NOT NULL
 );
 ALTER TABLE
     `services` ADD UNIQUE `services_token_unique`(`token`);
