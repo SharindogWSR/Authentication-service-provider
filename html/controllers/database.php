@@ -165,13 +165,51 @@
 
     // НАЧАЛО БЛОКА ФУНКЦИЙ СЕРВИСОВ
 
-    public function list_of_services(int $id = 0) {
+    public function list_of_services(string $token = '') {
       $returned = [];
-      $q = $id == 0 ? "SELECT `name`, `production`, `payload`, `groups` FROM `services`;" : "SELECT `name`, `production`, `payload`, `groups` FROM `services` WHERE `id` = {$id};";
-      $list = $this -> query($q);
-      if ($list -> num_rows != 0)
-        while ($row = $list -> fetch_assoc())
-          $returned[] = $row;
+      $s = null;
+      if (!empty($token)) {
+        $s = $this -> prepare("SELECT `name`, `production`, `payload`, `groups`, `can_edit_user` FROM `services` WHERE `token_hash` = ?;");
+        $s -> bind_param('s', hash('SHA512', $token));
+      } else $s = $this -> prepare("SELECT `name`, `production`, `payload`, `groups`, `can_edit_user` FROM `services`");
+      $s -> execute();
+      while ($row = $s -> get_result() -> fetch_assoc())
+        $returned[] = [
+          'name' => $row['name'],
+          'production' => boolval($row['production']),
+          'payload' => boolval($row['payload']),
+          'groups' => boolval($row['groups']),
+          'can_edit_user' => boolval($row['can_edit_user'])
+        ];
       return $returned;
+    }
+
+    public function create_service(
+      string $name = '',
+      string $token = '',
+      bool $b_production = false,
+      bool $b_payload = false,
+      bool $b_can_edit_user = false,
+      array $b_groups = []
+    ) {
+      if (!empty($name) && !empty($token) && !empty($b_groups)) {
+        $token = hash('SHA512', $token);
+        $check_exsist = $this -> prepare("SELECT `id` FROM `services` WHERE `token_hash` = ?;");
+        $check_exsist -> bind_param('s', hash('SHA512', $token));
+        if ($check_exsist -> get_result() -> num_rows == 0) {
+          $insert = $this -> prepare("INSERT INTO `services` (`token_hash`, `name`, `production`, `payload`, `groups`, `can_edit_user`) VALUES (?, ?, ?, ?, ?, ?);");
+          $insert -> bind_param(
+            'ssiiii',
+            $token,
+            $this -> real_escape_string($name),
+            intval($b_production),
+            intval($b_payload),
+            intval($b_groups),
+            intval($b_can_edit_user)
+          );
+          $insert -> execute();
+          return true;
+        } else return false;
+      } else return false;
     }
   }

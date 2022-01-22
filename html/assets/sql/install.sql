@@ -37,7 +37,7 @@ CREATE TABLE `log_of_authorization`(
 );
 CREATE TABLE `services`(
     `id` INT NOT NULL PRIMARY KEY AUTO_INCREMENT,
-    `token` VARCHAR(255) NOT NULL,
+    `token_hash` VARCHAR(255) NOT NULL,
     `name` VARCHAR(255) NOT NULL,
     `production` TINYINT(1) NOT NULL,
     `payload` TINYINT(1) NOT NULL,
@@ -45,7 +45,7 @@ CREATE TABLE `services`(
     `can_edit_user` TINYINT(1) NOT NULL
 );
 ALTER TABLE
-    `services` ADD UNIQUE `services_token_unique`(`token`);
+    `services` ADD UNIQUE `services_token_hash_unique`(`token_hash`);
 ALTER TABLE
     `services` ADD UNIQUE `services_name_unique`(`name`);
 CREATE TABLE `services_authorization`(
