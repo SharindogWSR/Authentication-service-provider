@@ -46,4 +46,15 @@
     static function check_method(array $allowed = ['POST']) {
       return in_array($_SERVER['REQUEST_METHOD'], $allowed);
     }
+
+    static function get_ip_address() {
+      $ip = '';
+      if (!empty($_SERVER['HTTP_CLIENT_IP']))
+        $ip = $_SERVER['HTTP_CLIENT_IP'];
+      elseif (!empty($_SERVER['HTTP_X_FORWARDED_FOR']))
+        $ip = $_SERVER['HTTP_X_FORWARDED_FOR'];
+      else
+        $ip = $_SERVER['REMOTE_ADDR'];
+      return $ip;
+    }
   }

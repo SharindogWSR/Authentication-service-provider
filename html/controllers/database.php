@@ -39,7 +39,8 @@
     public function check_uuid(string $uuid = '') {
       if (!empty($uuid)) {
         $statement = $this -> prepare("SELECT `id` FROM `authorization` WHERE `uuid` = ?;");
-        $statement -> bind_param('s', $this -> real_escape_string($uuid));
+        $uuid = $this -> real_escape_string($uuid);
+        $statement -> bind_param('s', $uuid);
         $statement -> execute();
         return $statement -> get_result() -> num_rows == 1 ? true : false;
       } else return false;
@@ -68,8 +69,9 @@
             $this -> real_escape_string($uuid)
           );
           $statement -> execute();
-          if ($statement -> get_result() -> num_rows == 1) {
-            $statement = $statement -> get_result() -> fetch_assoc();
+          $statement = $statement -> get_result();
+          if ($statement -> num_rows == 1) {
+            $statement = $statement -> fetch_assoc();
             if (boolval($statement['production']) || $statement['system_role'] == 'system') {
               $user = [
                 'lastname' => $statement['lastname'],
@@ -96,9 +98,11 @@
             ON `authorization`.`id_data` = `users_data`.`id`
             WHERE `authorization`.`uuid` = ?;"
           );
-          $statement -> bind_param('s', $this -> real_escape_string($uuid));
+          $uuid = $this -> real_escape_string($uuid);
+          $statement -> bind_param('s', $uuid);
           $statement -> execute();
-          return $statement -> get_result() -> num_rows == 1 ? $statement -> get_result() -> fetch_assoc() : false;
+          $statement = $statement -> get_result();
+          return $statement -> num_rows == 1 ? $statement -> fetch_assoc() : false;
         }
       } else return false;
     }
@@ -107,55 +111,153 @@
       if (!empty($email) && !empty($password)) {
         $email = $this -> real_escape_string($email);
         $password = $this -> real_escape_string($password);
-        $statement = $this -> prepare("SELECT `id`, `uuid`, `password_hash` FROM `authorization` WHERE `email` = ?;");
+        $statement = $this -> prepare("
+          SELECT
+            `authorization`.`id`, `uuid`, `password_hash`,
+            `users_data`.`group` 
+          FROM `authorization` 
+          INNER JOIN `users_data`
+          ON `authorization`.`id_data` = `users_data`.`id`
+          WHERE `email` = ?;
+        ");
         $statement -> bind_param('s', $email);
         $statement -> execute();
-        if ($statement -> get_result() -> num_rows == 1) {
-          $statement = $statement -> get_result() -> fetch_assoc();
+        $statement = $statement -> get_result();
+        if ($statement -> num_rows == 1) {
+          $statement = $statement -> fetch_assoc();
           if (password_verify($password, $statement['password_hash'])) {
             $id_user = intval($statement['id']);
             $uuid = $statement['uuid'];
             $user_agent = $this -> real_escape_string($user_agent);
             $ip = $this -> real_escape_string($ip);
-            $statement = $this -> prepare("INSERT INTO `log_of_authorization` (`id_user`, `user_agent`, `ip_address`, `timestamp`, `id_service`) VALUES (?, ?, ?, ?, ?);");
-            $statement -> bind_param('issii', $id_user, $user_agent, $ip, time(), $id_service);
-            $statement -> execute();
-            return $uuid;
+            if ($statement['group'] == 'system' && $id_service == 0) {
+              $statement = $this -> prepare("INSERT INTO `log_of_authorization` (`id_user`, `user_agent`, `ip_address`, `timestamp`, `id_service`) VALUES (?, ?, ?, NOW(), NULL);");
+              $statement -> bind_param('iss', $id_user, $user_agent, $ip);
+              $statement -> execute();
+              return $uuid;
+            } elseif ($id_service != 0) {
+              $statement = $this -> prepare("INSERT INTO `log_of_authorization` (`id_user`, `user_agent`, `ip_address`, `timestamp`, `id_service`) VALUES (?, ?, ?, NOW(), ?);");
+              $statement -> bind_param('issi', $id_user, $user_agent, $ip, $id_service);
+              $statement -> execute();
+              return $uuid;
+            } else return false;
           }
         } else return false;
       } else return false;
     }
 
-    public function save_refresh_token(string $uuid = '', string $refresh = '', string $user_agent = '') {
+    public function save_refresh_token(string $uuid = '', string $refresh = '', string $user_agent = '', int $id_service = 0) {
       if (!empty($uuid) && !empty($refresh) && !empty($user_agent)) {
         if ($this -> get_user($uuid)) {
           $refresh = hash('SHA512', $refresh);
           $user_agent = $this -> real_escape_string($user_agent);
-          $check_exsist = $this -> prepare("SELECT `timestamp` FROM `refresh_tokens` WHERE `user_agent` = ?;");
-          $check_exsist -> bind_param('s', $refresh);
+          $check_exsist = null;
+          if ($id_service == 0) {
+            $check_exsist = $this -> prepare("
+              SELECT
+                `timestamp`
+              FROM
+                `refresh_tokens`
+              WHERE
+                `user_agent` = ? AND
+                `id_user` = (
+                  SELECT `id`
+                    FROM `authorization`
+                    WHERE `uuid` = ?
+                ) AND
+                `id_service` IS NULL;
+            ");
+            $check_exsist -> bind_param('ss', $user_agent, $uuid);
+          } else {
+            $check_exsist = $this -> prepare("
+              SELECT
+                `timestamp`
+              FROM
+                `refresh_tokens`
+              WHERE
+                `user_agent` = ? AND
+                `id_user` = (
+                  SELECT `id`
+                    FROM `authorization`
+                    WHERE `uuid` = ?
+                ) AND
+                `id_service` = ?;
+            ");
+            $check_exsist -> bind_param('ssi', $user_agent, $uuid, $id_service);
+          }
           $check_exsist -> execute();
           $statement = null;
           if ($check_exsist -> get_result() -> num_rows == 0) {
-            $statement = $this -> prepare("
-              INSERT INTO `refresh_tokens`
-              (
-                `id_user`, `tokens_hash`, `timestamp`,
-                `user_agent`
-              ) VALUES (
+            if ($id_service != 0) {
+              $statement = $this -> prepare("
+                INSERT INTO `refresh_tokens`
                 (
-                  SELECT `id`
-                  FROM `authorization`
-                  WHERE `uuid` = ?
-                ),
-                ?,
-                ?,
-                ?
-              );
-            ");
-            $statement -> bind_param('ssis', $uuid, $refresh, time(), $user_agent);
+                  `id_user`, `tokens_hash`, `timestamp`,
+                  `user_agent`, `id_service`
+                ) VALUES (
+                  (
+                    SELECT `id`
+                    FROM `authorization`
+                    WHERE `uuid` = ?
+                  ),
+                  ?,
+                  NOW(),
+                  ?,
+                  ?
+                );
+              ");
+              $statement -> bind_param('sssi', $uuid, $refresh, $user_agent, $id_service);
+            } else {
+              $statement = $this -> prepare("
+                INSERT INTO `refresh_tokens`
+                (
+                  `id_user`, `tokens_hash`, `timestamp`,
+                  `user_agent`, `id_service`
+                ) VALUES (
+                  (
+                    SELECT `id`
+                    FROM `authorization`
+                    WHERE `uuid` = ?
+                  ),
+                  ?,
+                  NOW(),
+                  ?,
+                  NULL
+                );
+              ");
+              $statement -> bind_param('sss', $uuid, $refresh, $user_agent);
+            }
           } else {
-            $statement = $this -> prepare("UPDATE `refresh_tokens` SET `tokens_hash` = ?, `timestamp` = ? WHERE `user_agent` = ?;");
-            $statement -> bind_param('sis', $refresh, time(), $user_agent);
+            if ($id_service != 0) {
+              $statement = $this -> prepare("
+                UPDATE `refresh_tokens`
+                SET `tokens_hash` = ?, `timestamp` = NOW()
+                WHERE
+                  `user_agent` = ? AND
+                  `id_user` = (
+                      SELECT `id`
+                      FROM `authorization`
+                      WHERE `uuid` = ?
+                  ),
+                  `id_service` = ?
+                ;
+              ");
+              $statement -> bind_param('sssi', $refresh, $user_agent, $uuid, $id_service);
+            } else {
+              $statement = $this -> prepare("
+                UPDATE `refresh_tokens`
+                SET `tokens_hash` = ?, `timestamp` = NOW()
+                WHERE
+                  `user_agent` = ? AND
+                  `id_user` = (
+                      SELECT `id`
+                      FROM `authorization`
+                      WHERE `uuid` = ?
+                  ) AND
+                  `id_service` IS NULL;
+              ");
+              $statement -> bind_param('sss', $refresh, $user_agent, $uuid);
+            }
           }
           $statement -> execute();
           return true;
@@ -169,12 +271,14 @@
       $returned = [];
       $s = null;
       if (!empty($token)) {
-        $s = $this -> prepare("SELECT `name`, `production`, `payload`, `groups`, `can_edit_user` FROM `services` WHERE `token_hash` = ?;");
+        $s = $this -> prepare("SELECT `id`, `name`, `production`, `payload`, `groups`, `can_edit_user` FROM `services` WHERE `token_hash` = ?;");
         $s -> bind_param('s', hash('SHA512', $token));
       } else $s = $this -> prepare("SELECT `name`, `production`, `payload`, `groups`, `can_edit_user` FROM `services`");
       $s -> execute();
-      while ($row = $s -> get_result() -> fetch_assoc())
+      $s = $s -> get_result();
+      while ($row = $s -> fetch_assoc())
         $returned[] = [
+          'id' => $row['id'],
           'name' => $row['name'],
           'production' => boolval($row['production']),
           'payload' => boolval($row['payload']),

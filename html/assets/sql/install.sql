@@ -24,7 +24,8 @@ CREATE TABLE `refresh_tokens`(
     `id_user` INT NOT NULL,
     `tokens_hash` VARCHAR(255) NOT NULL,
     `timestamp` TIMESTAMP NOT NULL,
-    `user_agent` TEXT NOT NULL
+    `user_agent` TEXT NOT NULL,
+    `id_service` INT NULL
 );
 ALTER TABLE
     `refresh_tokens` ADD UNIQUE `refresh_tokens_tokens_hash_unique`(`tokens_hash`);
@@ -65,3 +66,5 @@ ALTER TABLE
     `log_of_authorization` ADD CONSTRAINT `log_of_authorization_id_service_foreign` FOREIGN KEY(`id_service`) REFERENCES `services`(`id`);
 ALTER TABLE
     `services_authorization` ADD CONSTRAINT `services_authorization_id_service_foreign` FOREIGN KEY(`id_service`) REFERENCES `services`(`id`);
+ALTER TABLE
+    `refresh_tokens` ADD CONSTRAINT `refresh_tokens_id_service_foreign` FOREIGN KEY(`id_service`) REFERENCES `services`(`id`);

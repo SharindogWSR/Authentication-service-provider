@@ -50,4 +50,11 @@
         'RS512'
       );
     }
+
+    public function create_refresh_token(string $jwt = '') {
+      return hash(
+        'SHA512',
+        $jwt . time() . bin2hex(random_bytes(1024))
+      );
+    }
   }

@@ -10,5 +10,14 @@
       'lifetime' => 1800,
       // iss - стандартное значение URL-адреса сервиса генерации и регистрации. По умолчанию: https://auth.nttek.ru.
       'iss' => 'https://auth.nttek.ru'
+    ],
+    // cookies - место конфигурации Cookies.
+    'cookies' => [
+      // domain - домен для которого устанавливаются куки. По умолчанию nttek.ru.
+      'domain' => 'nttek.ru',
+      // secure - указатель того, что Cookie передается по протоколу HTTPS. По умолчанию true.
+      'secure' => false,
+      // httponly - указатель того, что Cookie доступна только в протоколе HTTP (запрещена обработка в JS). По умолчанию false.
+      'httponly' => false
     ]
   ];
