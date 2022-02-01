@@ -22,28 +22,43 @@
         if (!empty(getallheaders()['User-Agent'])) {
           $user_agent = getallheaders()['User-Agent'];
           if (in_array('service_token', $checkable)) {
-
+            $services = $database -> list_of_services($_POST['service_token']);
+            if (!empty($services)) {
+              $services = $services[0];
+              if ($uuid = $database -> user_login(
+                $_POST['email'],
+                $_POST['password'],
+                $user_agent,
+                system::get_ip_address(),
+                $serivces['id']
+              )) {
+                $jwt = $tokens -> create_jwt_token($database -> get_user($uuid), $uuid, $services['name']);
+                $refresh = $tokens -> create_refresh_token($jwt);
+                $database -> save_refresh_token($uuid, $refresh, $user_agent, $serivces['id']);
+                system::create_message(
+                  'Успешная авторизация!',
+                  [
+                    'jwt' => $jwt,
+                    'refresh' => $refresh
+                  ]
+                );
+              } else system::create_message('Некорректные данные для авторизации!', [], 401);
+            } else system::create_message('Некорректные данные для авторизации!', [], 401);
           } else {
             if ($uuid = $database -> user_login($_POST['email'], $_POST['password'], $user_agent, system::get_ip_address(), 0)) {
-              $jwt = $tokens -> create_jwt_token($database -> get_user($uuid), $uuid);
-              $refresh = $tokens -> create_refresh_token($jwt);
-              $database -> save_refresh_token($uuid, $refresh, $user_agent);
-              setcookie(
-                'jwt_refresh_token',
-                $refresh,
-                time() + 60 * 60 * 24 * 30,
-                '/',
-                $CNF['cookies']['domain'],
-                $CNF['cookies']['secure'],
-                $CNF['cookies']['httponly']
-              );
-              system::create_message(
-                'Успешная авторизация!',
-                [
-                  'jwt' => $jwt,
-                  'refresh' => $refresh
-                ]
-              );
+              $user = $database -> get_user($uuid);
+              if ($user['group'] == 'system') {
+                $jwt = $tokens -> create_jwt_token($user, $uuid);
+                $refresh = $tokens -> create_refresh_token($jwt);
+                $database -> save_refresh_token($uuid, $refresh, $user_agent);
+                system::create_message(
+                  'Успешная авторизация!',
+                  [
+                    'jwt' => $jwt,
+                    'refresh' => $refresh
+                  ]
+                );
+              } else system::create_message('Некорректные данные для авторизации!', [], 401);
             } else system::create_message('Некорректные данные для авторизации!', [], 401);
           }
         } else system::create_message('В запросе не установлен User-Agent.', [], 400);

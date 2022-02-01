@@ -265,25 +265,86 @@
       } else return false;
     }
 
+    public function check_refresh_token(string $refresh = '', string $user_agent = '') {
+      if (!empty($refresh)) {
+        $refresh = hash('SHA512', $refresh);
+        $user_agent = $this -> real_escape_string($user_agent);
+        $get_refresh = $this -> prepare('
+          SELECT
+            UNIX_TIMESTAMP(`timestamp`) AS `ts`,
+            `authorization`.`uuid`,
+            IF (
+              id_service IS NULL,
+              \'authorization\',
+              (
+                SELECT `name`
+                FROM `services`
+                WHERE `id` = `id_service`
+              )
+            ) AS `service_name`
+          FROM `refresh_tokens`
+          INNER JOIN `authorization`
+          ON `refresh_tokens`.`id_user` = `authorization`.`id`
+          WHERE `refresh_tokens`.`tokens_hash` = ? AND `refresh_tokens`.`user_agent` = ?;
+        ');
+        $get_refresh -> bind_param('ss', $refresh, $user_agent);
+        $get_refresh -> execute();
+        $get_refresh = $get_refresh -> get_result();
+        if ($get_refresh -> num_rows == 1) {
+          $get_refresh = $get_refresh -> fetch_assoc();
+          if ((intval($get_refresh['ts']) + 60 * 60 * 24 * 30) > time())
+            return [
+              'uuid' => $get_refresh['uuid'],
+              'service' => $get_refresh['service_name'],
+            ];
+          else {
+            $get_refresh = $this -> prepare('DELETE FROM `refresh_tokens` WHERE `tokens_hash` = ?;');
+            $get_refresh -> bind_param('s', $refresh);
+            $get_refresh -> execute();
+            return 2;
+          }
+        } else {
+          $get_refresh = $this -> prepare('DELETE FROM `refresh_tokens` WHERE `tokens_hash` = ?;');
+          $get_refresh -> bind_param('s', $refresh);
+          $get_refresh -> execute();
+          return 1;
+        }
+      } else return 0;
+    }
+
+    public function purge_refresh_token(string $refresh = '', string $user_agent = '') {
+      if (!empty($refresh) && !empty($user_agent)) {
+        if (is_array($this -> check_refresh_token($refresh, $user_agent))) {
+          $refresh = hash('SHA512', $refresh);
+          $get_refresh = $this -> prepare('DELETE FROM `refresh_tokens` WHERE `tokens_hash` = ?;');
+          $get_refresh -> bind_param('s', $refresh);
+          $get_refresh -> execute();
+          return true;
+        } else return false;
+      } else return false;
+    }
+
     // НАЧАЛО БЛОКА ФУНКЦИЙ СЕРВИСОВ
 
     public function list_of_services(string $token = '') {
       $returned = [];
       $s = null;
       if (!empty($token)) {
-        $s = $this -> prepare("SELECT `id`, `name`, `production`, `payload`, `groups`, `can_edit_user` FROM `services` WHERE `token_hash` = ?;");
-        $s -> bind_param('s', hash('SHA512', $token));
-      } else $s = $this -> prepare("SELECT `name`, `production`, `payload`, `groups`, `can_edit_user` FROM `services`");
+        $s = $this -> prepare("SELECT `id`, `name`, `production`, `payload`, `groups`, `can_edit_user`, `can_get_list_of_services` FROM `services` WHERE `token_hash` = ?;");
+        $token = hash('SHA512', $token);
+        $s -> bind_param('s', $token);
+      } else $s = $this -> prepare("SELECT `id`, `name`, `production`, `payload`, `groups`, `can_edit_user`, `can_get_list_of_services` FROM `services`");
       $s -> execute();
       $s = $s -> get_result();
       while ($row = $s -> fetch_assoc())
         $returned[] = [
-          'id' => $row['id'],
+          'id' => intval($row['id']),
           'name' => $row['name'],
           'production' => boolval($row['production']),
           'payload' => boolval($row['payload']),
           'groups' => boolval($row['groups']),
-          'can_edit_user' => boolval($row['can_edit_user'])
+          'can_edit_user' => boolval($row['can_edit_user']),
+          'can_get_list_of_services' => boolval($row['can_get_list_of_services'])
         ];
       return $returned;
     }
@@ -294,22 +355,24 @@
       bool $b_production = false,
       bool $b_payload = false,
       bool $b_can_edit_user = false,
+      bool $b_can_get_list_of_services = false,
       array $b_groups = []
     ) {
       if (!empty($name) && !empty($token) && !empty($b_groups)) {
         $token = hash('SHA512', $token);
-        $check_exsist = $this -> prepare("SELECT `id` FROM `services` WHERE `token_hash` = ?;");
-        $check_exsist -> bind_param('s', hash('SHA512', $token));
+        $check_exsist = $this -> prepare("SELECT `id` FROM `services` WHERE `token_hash` = ? OR `name` = ?;");
+        $check_exsist -> bind_param('ss', $token, $name);
         if ($check_exsist -> get_result() -> num_rows == 0) {
-          $insert = $this -> prepare("INSERT INTO `services` (`token_hash`, `name`, `production`, `payload`, `groups`, `can_edit_user`) VALUES (?, ?, ?, ?, ?, ?);");
+          $insert = $this -> prepare("INSERT INTO `services` (`token_hash`, `name`, `production`, `payload`, `groups`, `can_edit_user`, `can_get_list_of_services`) VALUES (?, ?, ?, ?, ?, ?, ?);");
           $insert -> bind_param(
-            'ssiiii',
+            'ssiiiii',
             $token,
             $this -> real_escape_string($name),
             intval($b_production),
             intval($b_payload),
             intval($b_groups),
-            intval($b_can_edit_user)
+            intval($b_can_edit_user),
+            intval($b_can_get_list_of_services)
           );
           $insert -> execute();
           return true;

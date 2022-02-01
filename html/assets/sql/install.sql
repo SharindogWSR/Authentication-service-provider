@@ -42,8 +42,9 @@ CREATE TABLE `services`(
     `name` VARCHAR(255) NOT NULL,
     `production` TINYINT(1) NOT NULL,
     `payload` TINYINT(1) NOT NULL,
-    `groups` JSON NOT NULL,
-    `can_edit_user` TINYINT(1) NOT NULL
+    `can_edit_user` TINYINT(1) NOT NULL,
+    `can_get_list_of_services` TINYINT(1) NOT NULL,
+    `groups` JSON NOT NULL
 );
 ALTER TABLE
     `services` ADD UNIQUE `services_token_hash_unique`(`token_hash`);

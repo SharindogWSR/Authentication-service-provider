@@ -12,7 +12,7 @@
     В независимости от действий, время жизни JWT-токена составляет 30 минут. Время жизни Refresh Token - 30 дней.
   */
 
-  class tokens {
+class tokens {
     private $keys = [
       'public' => '',
       'private' => '',
@@ -56,5 +56,25 @@
         'SHA512',
         $jwt . time() . bin2hex(random_bytes(1024))
       );
+    }
+
+    public function decode_jwt_token(string $jwt = '') {
+      if (!empty($jwt)) {
+        $ret = null;
+        try {
+          $ret = [true, $this -> firebase['class'] -> decode(
+            $jwt, 
+            $this -> firebase['pub_key']
+          )];
+        } catch (Exception $e) {
+          $ret = [false, $e -> getMessage()];
+        }
+        return $ret;
+      }
+      else return [false, 'Не предоставлен JWT-токен.'];
+    }
+
+    public function check_data_of_jwt(string $jwt = '', string $service = '', string $group = '')  {
+
     }
   }
