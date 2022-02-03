@@ -356,25 +356,75 @@
       bool $b_payload = false,
       bool $b_can_edit_user = false,
       bool $b_can_get_list_of_services = false,
-      array $b_groups = []
+      object $b_groups
     ) {
       if (!empty($name) && !empty($token) && !empty($b_groups)) {
         $token = hash('SHA512', $token);
         $check_exsist = $this -> prepare("SELECT `id` FROM `services` WHERE `token_hash` = ? OR `name` = ?;");
         $check_exsist -> bind_param('ss', $token, $name);
+        $check_exsist -> execute();
         if ($check_exsist -> get_result() -> num_rows == 0) {
           $insert = $this -> prepare("INSERT INTO `services` (`token_hash`, `name`, `production`, `payload`, `groups`, `can_edit_user`, `can_get_list_of_services`) VALUES (?, ?, ?, ?, ?, ?, ?);");
+          $name = $this -> real_escape_string($name);
+          $b_production = intval($b_production);
+          $b_can_edit_user = intval($b_can_edit_user);
+          $b_can_get_list_of_services = intval($b_can_get_list_of_services);
+          $b_groups = json_encode($b_groups);
           $insert -> bind_param(
-            'ssiiiii',
+            'ssiisii',
             $token,
-            $this -> real_escape_string($name),
-            intval($b_production),
-            intval($b_payload),
-            intval($b_groups),
-            intval($b_can_edit_user),
-            intval($b_can_get_list_of_services)
+            $name,
+            $b_production,
+            $b_payload,
+            $b_groups,
+            $b_can_edit_user,
+            $b_can_get_list_of_services
           );
           $insert -> execute();
+          return true;
+        } else return false;
+      } else return false;
+    }
+
+    public function edit_service(array $payload = []) {
+      $token_hash = !empty($payload['token']) ? hash('SHA512', $payload['token']) : null;
+      $name = !empty($payload['name']) ? $payload['name'] : null;
+      $groups = !empty($payload['groups']) ? $payload['groups'] : null;
+      $triggers = null;
+      $pre = [
+        'types' => '',
+        'sql' => '',
+        'payload' => []
+      ];
+
+      foreach ($payload as $key => $value)
+        if (in_array($key, ['production', 'payload', 'can_edit_user', 'can_get_list_of_services']))
+          $triggers[$key] = intval($value);
+      if (!empty($this -> list_of_services($payload['token']))) {
+        if (!is_null($name)) {
+          $pre['types'] .= 's';
+          $pre['sql'] .= '`name` = ?, ';
+          $pre['payload'][] = $name;
+        }
+        if (!is_null($groups)) {
+          $pre['types'] .= 's';
+          $pre['sql'] .= '`groups` = ?, ';
+          $pre['payload'][] = $groups;
+        }
+        if (!is_null($triggers)) {
+          foreach ($triggers as $key => $value) {
+            $pre['types'] .= 'i';
+            $pre['sql'] .= "`{$key}` = ?, ";
+            $pre['payload'][] = $value;
+          }
+        }
+        if (!empty($pre['types'])) {
+          $pre['sql'] = substr($pre['sql'], 0, -2);
+          $stmt = $this -> prepare("UPDATE `services` SET {$pre['sql']} WHERE `token_hash` = ?;");
+          $pre['types'] .= 's';
+          $pre['payload'][] = $token_hash;
+          $stmt -> bind_param($pre['types'], ...$pre['payload']);
+          $stmt -> execute();
           return true;
         } else return false;
       } else return false;

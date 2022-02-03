@@ -17,7 +17,10 @@
           else $this -> set_content_type('text/html');
           require $this -> get_path($this -> finder);
         } else $this -> show_code();
-      } else require $this -> get_path('index');
+      } else {
+        require $this -> get_path('index');
+        $this -> set_content_type();
+      }
     }
 
     private function get_path(string $path) {

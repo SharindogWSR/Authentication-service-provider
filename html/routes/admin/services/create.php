@@ -39,12 +39,12 @@
                   $groups = json_decode($_POST['groups']);
                   if (!is_null($groups)) {
                     if (!empty($groups -> default) && !empty($groups -> list)) {
-                      if (!is_int($groups -> default) && in_array($groups -> default, $groups -> list)) {
+                      if (is_int($groups -> default) && in_array($groups -> default, $groups -> list)) {
                         $check = [];
                         foreach ($groups -> list as $value)
                           if (!is_int($value))
                             $check[] = $value;
-                        if (!empty($check)) {
+                        if (empty($check)) {
                           $token = hash('SHA512', $_POST['name'] . time());
                           if ($database -> create_service(
                             $_POST['name'],
