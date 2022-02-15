@@ -23,7 +23,13 @@
                 'token'
               ]);
               if (empty($check_payload)) {
-                
+                if ($database -> purge_service($_POST['token'])) {
+                  system::create_message('Сервис удален.');
+                } else system::create_message(
+                  'Произошла проблема при удалении сервиса. Возможно, что такого сервиса не существует.',
+                  [],
+                  500
+                );
               } else system::create_message(
                 'Не хватает некоторых данных!',
                 [

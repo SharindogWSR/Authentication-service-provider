@@ -23,7 +23,18 @@
                 'token'
               ]);
               if (empty($check_payload)) {
-                
+                $service = $database -> list_of_services($_POST['token'])[0];
+                if ($service['can_get_list_of_services']) system::create_message(
+                  'Список готов!',
+                  [
+                    'list_of_services' => empty($_POST['addition_token']) ? $database -> list_of_services() : $database -> list_of_services($_POST['addition_token']),
+                  ]
+                );
+                else system::create_message(
+                  'Сервис не обладает возможностью получать список сервисов!',
+                  [],
+                  403
+                );
               } else system::create_message(
                 'Не хватает некоторых данных!',
                 [

@@ -46,6 +46,16 @@
       } else return false;
     }
 
+    public function check_email(string $email = '') {
+      if (!empty($email)) {
+        $statement = $this -> prepare("SELECT `id` FROM `authorization` WHERE `email` = ?;");
+        $email = $this -> real_escape_string($email);
+        $statement -> bind_param('s', $email);
+        $statement -> execute();
+        return $statement -> get_result() -> num_rows == 1 ? true : false;
+      } else return false;
+    }
+
     public function get_user(string $uuid = '', string $service_token = '') {
       if ($this -> check_uuid($uuid)) {
         if (!empty($service_token)) {
@@ -324,6 +334,45 @@
       } else return false;
     }
 
+    public function register_user(
+      string $email = '',
+      string $lastname = '',
+      string $firstname = '',
+      string $patronymic = '',
+      string $group = ''
+    ) {
+      if (
+        !empty($email) &&
+        !empty($lastname) &&
+        !empty($firstname) &&
+        !empty($group)
+      ) {
+        if (!$this -> check_email($email)) {
+          $uuid = system::create_UUID();
+          while (!$this -> check_uuid($uuid))
+            $uuid = system::create_UUID();
+          $password[] = system::create_password();
+          $password[] = password_hash($password[0], PASSWORD_DEFAULT);
+          $insert_user_data = $this -> prepare("INSERT INTO users_data (`lastname`, `firstname`, `patronymic`, `group`, `payload`) VALUES (?, ?, ?, ?, NULL);");
+          $email = $this -> real_escape_string($email);
+          $firstname = $this -> real_escape_string($firstname);
+          $lastname = $this -> real_escape_string($lastname);
+          $patronymic = $this -> real_escape_string($patronymic);
+          $group = $this -> real_escape_string($group);
+          $insert_user_data -> bind_param('ssss', $lastname, $firstname, $patronymic, $group);
+          $insert_user_data -> execute();
+          $insert_user_data = $insert_user_data -> insert_id;
+          $insert_auth = $this -> prepare("INSERT INTO `authorization` (`uuid`, `email`, `google_ldap_email`, `password_hash`, `id_data`) VALUES (?, ?, NULL, ?, ?);");
+          $insert_auth -> bind_param('sssi', $uuid, $email, $password[1], $insert_user_data);
+          $insert_auth -> execute();
+          return [
+            'uuid' => $uuid,
+            'password' => $password[0]
+          ];
+        } else return false;
+      } else return false;
+    }
+
     // НАЧАЛО БЛОКА ФУНКЦИЙ СЕРВИСОВ
 
     public function list_of_services(string $token = '') {
@@ -426,6 +475,27 @@
           $stmt -> bind_param($pre['types'], ...$pre['payload']);
           $stmt -> execute();
           return true;
+        } else return false;
+      } else return false;
+    }
+
+    public function purge_service(string $token = '') {
+      $token = hash('SHA512', $token);
+      if (!empty($token)) {
+        if (!empty($this -> list_of_services($token))) { 
+          $stmt = $this -> prepare("DELETE FROM `services` WHERE `token_hash` = ?;");
+          $stmt -> bind_param('s', $token);
+          $stmt -> execute();
+          return true;
+        } else return false;
+      } else return false;
+    }
+
+    public function get_new_refresh_token_for_service(string $token = '') {
+      $token = hash('SHA512', $token);
+      if (!empty($token)) {
+        if (!empty($this -> list_of_services($token))) { 
+          
         } else return false;
       } else return false;
     }

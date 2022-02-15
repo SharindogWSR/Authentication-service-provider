@@ -57,4 +57,12 @@
         $ip = $_SERVER['REMOTE_ADDR'];
       return $ip;
     }
+
+    static function create_password(int $len = 8) {
+      $alphabet = str_split('QWERTYUIOPASDFGHJKLZXCVBNM1234567890qwertyuiopasdfghjklzxcvbnm');
+      $ret = '';
+      for ($i = 0; $i < $len; $i++)
+        $ret .= $alphabet[random_int(0, count($alphabet) - 1)];
+      return $ret;
+    }
   }

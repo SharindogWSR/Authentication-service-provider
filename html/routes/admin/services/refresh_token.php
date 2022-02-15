@@ -23,7 +23,18 @@
                 'token'
               ]);
               if (empty($check_payload)) {
-                
+                if ($new_token = $database -> get_new_refresh_token_for_service($_POST['token'])) {
+                  system::create_message(
+                    'Выдан новый токен.',
+                    [
+                      'refresh' => $new_token
+                    ]
+                  );
+                } else system::create_message(
+                  'Произошла проблема при обновлении Refresh Token. Возможно, что такого сервиса не существует.',
+                  [],
+                  500
+                );
               } else system::create_message(
                 'Не хватает некоторых данных!',
                 [
