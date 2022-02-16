@@ -34,7 +34,16 @@
   
     static function check_required_payload(array $payload = [], string $type = 'POST') {
       if (!empty($payload)) {
-        $check = $type == 'POST' ? $_POST : $_GET;
+        $check = null;
+        switch ($type) {
+          case 'POST':
+          case 'GET':
+            $check = $type == 'POST' ? $_POST : $_GET;
+          break;
+          case 'PHP':
+            $check = (array) json_decode(file_get_contents('php://input'));
+          break;
+        }
         $not_found = [];
         foreach ($payload as $value)
           if (!array_key_exists($value, $check))

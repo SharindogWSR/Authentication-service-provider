@@ -7,4 +7,5 @@
       'public_key' => base64_encode($keys['public']),
       'lifetime' => $CNF['jwt']['lifetime'],
     ],
+    'url' => $CNF['jwt']['iss'],
   ]));

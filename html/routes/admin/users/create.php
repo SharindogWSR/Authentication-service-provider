@@ -12,8 +12,8 @@
       system::create_message('Ошибка подключения к базе данных!', [], 503);
     }
     if ($system_is_ready) {
-      $token = getallheaders()['Authorization'];
-      if (!empty($token)) {
+      if (!empty(getallheaders()['Authorization'])) {
+        $token = getallheaders()['Authorization'];
         if (stripos($token, 'Bearer ') !== false) {
           $token = explode(' ', $token)[1];
           $token = $tokens -> decode_jwt_token($token);
@@ -26,7 +26,6 @@
                 'group'
               ]);
               if (empty($check_payload)) {
-                $check_payload = [];
                 if (
                   stripos($_POST['group'], 'students') !== false ||
                   in_array($_POST['group'], ['system', 'teachers', 'users'])

@@ -1,6 +1,6 @@
 <?php
   require __DIR__ . '/../../../controllers/autoload.php';
-  if (system::check_method()) {
+  if (system::check_method(['DELETE'])) {
     $database;
     $tokens;
     $system_is_ready = false;
@@ -12,8 +12,8 @@
       system::create_message('Ошибка подключения к базе данных!', [], 503);
     }
     if ($system_is_ready) {
-      $token = getallheaders()['Authorization'];
-      if (!empty($token)) {
+      if (!empty(getallheaders()['Authorization'])) {
+        $token = getallheaders()['Authorization'];
         if (stripos($token, 'Bearer ') !== false) {
           $token = explode(' ', $token)[1];
           $token = $tokens -> decode_jwt_token($token);
@@ -21,9 +21,10 @@
             if ($token[1] -> user_data -> group == 'system') {
               $check_payload = system::check_required_payload([
                 'token'
-              ]);
+              ], 'PHP');
+              $payload = (array) json_decode(file_get_contents('php://input'));
               if (empty($check_payload)) {
-                if ($database -> purge_service($_POST['token'])) {
+                if ($database -> purge_service($payload['token'])) {
                   system::create_message('Сервис удален.');
                 } else system::create_message(
                   'Произошла проблема при удалении сервиса. Возможно, что такого сервиса не существует.',
@@ -49,4 +50,4 @@
       } else system::create_message('Не предоставлены данные для идентификации!', [], 401);
       $database -> close();
     }
-  } else system::create_message('Неподдерживаемый метод! Поддерживаемые методы: POST.', [], 405);
+  } else system::create_message('Неподдерживаемый метод! Поддерживаемые методы: DELETE.', [], 405);

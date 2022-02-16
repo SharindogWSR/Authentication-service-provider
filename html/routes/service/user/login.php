@@ -30,11 +30,11 @@
                 $_POST['password'],
                 $user_agent,
                 system::get_ip_address(),
-                $serivces['id']
+                $services['id']
               )) {
                 $jwt = $tokens -> create_jwt_token($database -> get_user($uuid), $uuid, $services['name']);
                 $refresh = $tokens -> create_refresh_token($jwt);
-                $database -> save_refresh_token($uuid, $refresh, $user_agent, $serivces['id']);
+                $database -> save_refresh_token($uuid, $refresh, $user_agent, $services['id']);
                 system::create_message(
                   'Успешная авторизация!',
                   [

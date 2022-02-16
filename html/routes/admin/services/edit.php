@@ -12,8 +12,8 @@
       system::create_message('Ошибка подключения к базе данных!', [], 503);
     }
     if ($system_is_ready) {
-      $token = getallheaders()['Authorization'];
-      if (!empty($token)) {
+      if (!empty(getallheaders()['Authorization'])) {
+        $token = getallheaders()['Authorization'];
         if (stripos($token, 'Bearer ') !== false) {
           $token = explode(' ', $token)[1];
           $token = $tokens -> decode_jwt_token($token);
@@ -30,7 +30,7 @@
                     !in_array($value, ['0', '1'])
                   )
                     $check_payload[] = $key;
-                if (!empty($check_payload)) {
+                if (empty($check_payload)) {
                   $check_payload = false;
                   if (empty($_POST['groups']))
                     $check_payload = true;
@@ -38,19 +38,20 @@
                     $_POST['groups'] = json_decode($_POST['groups']);
                     if (!is_null($_POST['groups']))
                       if (!empty($_POST['groups'] -> default) && !empty($_POST['groups'] -> list))
-                        if (!is_int($_POST['groups'] -> default) && in_array($_POST['groups'] -> default, $_POST['groups'] -> list)) {
+                        if (is_int($_POST['groups'] -> default) && in_array($_POST['groups'] -> default, $_POST['groups'] -> list)) {
                           $check = [];
                           foreach ($_POST['groups'] -> list as $value)
                             if (!is_int($value))
                               $check[] = $value;
-                          if (!empty($check))
+                          if (empty($check))
                             $check_payload = true;
                         }
                   }
                   if ($check_payload) {
+                    $_POST['groups'] = json_encode($_POST['groups']);
                     if ($database -> edit_service($_POST))
                       system::create_message('Сервис успешно изменен!');
-                    else system::create_message('Невозможно создать сервис! Возможно, что такое имя уже занято.', [], 500);
+                    else system::create_message('Невозможно изменить сервис! Возможно, что такое имя уже занято.', [], 500);
                   } else system::create_message('Проблема с группами!', [], 400);
                 } else system::create_message(
                   'Некоторые триггеры получили некорректные значения!',
